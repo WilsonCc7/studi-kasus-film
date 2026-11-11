@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Studi Kasus Film</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2rem; }
+    </style>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f5f5f7;
+        --surface: #ffffff;
+        --surface-2: #ececf0;
+        --ink: #1d1d1f;
+        --ink-2: #3a3a3c;
+        --line: #d8d8de;
+        --audio: #d9480f;
+        --audio-ink: #ffffff;
+        --audio-soft: #fdeee4;
+        --story: #1565c0;
+        --story-soft: #e5effa;
+        --good: #1e7e34;
+        --good-soft: #e2f3e6;
+        --bad: #c92a2a;
+        --bad-soft: #fbe7e7;
+        --warn: #9a6206;
+        --warn-soft: #fdf0d7;
+        --frame-bg: #fdfdf8;
+        --shadow: 0 10px 30px rgba(20, 20, 40, 0.10), 0 2px 6px rgba(20, 20, 40, 0.06);
+        --radius: 18px;
+        /* Token gerak (Emil Kowalski / animate): ease-out kuat untuk UI, ease-in-out kuat untuk gerak di layar */
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #101012;
+          --surface: #1c1c1f;
+          --surface-2: #2a2a2e;
+          --ink: #f5f5f7;
+          --ink-2: #d6d6da;
+          --line: #3a3a40;
+          --audio: #ff8a4c;
+          --audio-ink: #241105;
+          --audio-soft: #38220f;
+          --story: #6db3f2;
+          --story-soft: #16283d;
+          --good: #69db7c;
+          --good-soft: #14301b;
+          --bad: #ff8787;
+          --bad-soft: #3a1717;
+          --warn: #ffd43b;
+          --warn-soft: #38300f;
+          --frame-bg: #f4f2e9;
+          --shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        * { transition: none !important; animation: none !important; }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        font-size: 17px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+      ::selection { background: var(--story); color: #ffffff; }
+      :focus-visible { outline: 3px solid var(--story); outline-offset: 2px; border-radius: 6px; }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 72px; }
+
+      /* ---------- Indikator progres baca (transform saja, GPU) ---------- */
+      .progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; pointer-events: none; }
+      .progress-fill { height: 100%; background: var(--audio); transform: scaleX(0); transform-origin: left center; }
+
+      /* ---------- Reveal saat scroll (sekali, purpose: mencegah perubahan mendadak) ---------- */
+      html.anim .rv { opacity: 0; transform: translateY(10px); transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out); transition-delay: var(--d, 0ms); animation: rv-failsafe 1ms linear 600ms forwards; }
+      html.anim .rv.in { opacity: 1; transform: translateY(0); }
+      /* Failsafe: konten selalu tampil ≤600ms walau IntersectionObserver tak pernah terpicu */
+      @keyframes rv-failsafe { to { opacity: 1; transform: translateY(0); } }
+
+      /* ---------- Media foto dengan parallax ---------- */
+      .hero-media, .case-photo {
+        position: relative; overflow: hidden; border-radius: 22px;
+        box-shadow: var(--shadow); background: var(--surface-2); margin: 0;
+      }
+      .hero-media { margin-top: 30px; height: clamp(210px, 38vw, 320px); }
+      .case-photo { margin: 6px 0 10px; height: clamp(180px, 30vw, 250px); }
+      .hero-media img.plx, .case-photo img.plx {
+        position: absolute; left: 0; top: -12%; width: 100%; height: 124%;
+        object-fit: cover; will-change: transform;
+      }
+      .media-cap {
+        position: absolute; left: 14px; bottom: 12px; z-index: 2;
+        background: #1d1d1f; color: #f5f5f7;
+        font-size: 0.8rem; font-weight: 600; line-height: 1.4;
+        padding: 6px 12px; border-radius: 999px; max-width: calc(100% - 28px);
+      }
+
+      /* ---------- Intro ---------- */
+      .intro { padding: 44px 0 8px; }
+      .intro h1 {
+        font-size: clamp(1.9rem, 5.4vw, 3rem);
+        line-height: 1.14;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+        margin: 0 0 18px;
+        text-wrap: balance;
+        max-width: 18ch;
+      }
+      .intro h1 .hl-audio { color: var(--audio); }
+      .intro h1 .hl-story { color: var(--story); }
+      @media (prefers-color-scheme: dark) {
+        .intro h1 .hl-audio { color: var(--audio); }
+      }
+      .intro p.lede { font-size: 1.13rem; color: var(--ink-2); max-width: 62ch; margin: 0 0 28px; }
+      .jump { display: flex; flex-wrap: wrap; gap: 12px; }
+      .jump a {
+        display: inline-flex; align-items: center; gap: 10px;
+        min-height: 48px; padding: 10px 18px;
+        border-radius: 999px; text-decoration: none; font-weight: 700; font-size: 0.98rem;
+        background: var(--surface); color: var(--ink);
+        box-shadow: var(--shadow);
+        transition: transform 200ms var(--ease-out);
+      }
+      .jump a:active { transform: scale(0.97); }
+      @media (hover: hover) and (pointer: fine) {
+        .jump a:hover { transform: translateY(-2px); }
+        .frame:hover { transform: translateY(-3px); }
+      }
+      .jump .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+      .dot-audio { background: var(--audio); }
+      .dot-story { background: var(--story); }
+
+      /* ---------- Case sections ---------- */
+      section.case { margin-top: 64px; }
+      .case-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
+      .case-badge {
+        flex: none; margin-top: 6px;
+        font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.95rem;
+        padding: 8px 14px; border-radius: 12px; color: #fff; letter-spacing: 0.01em;
+      }
+      .badge-audio { background: var(--audio); color: var(--audio-ink); }
+      @media (prefers-color-scheme: light) { .badge-audio { color: #ffffff; } }
+      .badge-story { background: var(--story); color: #ffffff; }
+      @media (prefers-color-scheme: dark) { .badge-story { color: #0b1c30; } }
+      .case-head h2 {
+        font-size: clamp(1.55rem, 4.4vw, 2.2rem);
+        line-height: 1.2; letter-spacing: -0.025em; font-weight: 800; margin: 0;
+        text-wrap: balance;
+      }
+      .case-sub { color: var(--ink-2); max-width: 64ch; margin: 0 0 8px; font-size: 1.05rem; }
+
+      .qa { padding: 26px 0 6px; border-top: 1px solid var(--line); margin-top: 26px; }
+      .qa:first-of-type { border-top: none; margin-top: 6px; }
+      .qa h3 {
+        font-size: 1.22rem; font-weight: 700; letter-spacing: -0.015em;
+        margin: 0 0 10px; line-height: 1.35; text-wrap: balance;
+      }
+      .qa h3 .qnum {
+        font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.92rem;
+        margin-right: 10px;
+      }
+      .qa-audio h3 .qnum { color: var(--audio); }
+      .qa-story h3 .qnum { color: var(--story); }
+      .qa p { margin: 0 0 12px; max-width: 68ch; }
+      .qa p:last-child { margin-bottom: 0; }
+      strong.k { font-weight: 700; }
+      .db { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.92em; white-space: nowrap; }
+
+      ul.fn { list-style: none; margin: 14px 0 4px; padding: 0; max-width: 68ch; }
+      ul.fn li {
+        display: flex; gap: 12px; align-items: flex-start;
+        padding: 9px 0; border-top: 1px solid var(--line);
+      }
+      ul.fn li:first-child { border-top: none; padding-top: 2px; }
+      ul.fn .tick { flex: none; width: 22px; height: 22px; margin-top: 3px; }
+      ul.fn .tick svg { display: block; }
+
+      .callout {
+        border-radius: var(--radius); padding: 18px 20px; margin: 16px 0 4px; max-width: 68ch;
+      }
+      .callout p { margin: 0; }
+      .callout-audio { background: var(--audio-soft); }
+      .callout-story { background: var(--story-soft); }
+
+      /* ---------- Mixer ---------- */
+      .tool {
+        background: var(--surface); border-radius: 22px; box-shadow: var(--shadow);
+        padding: 24px; margin: 20px 0 8px;
+      }
+      .tool h4 { margin: 0 0 4px; font-size: 1.08rem; font-weight: 800; letter-spacing: -0.01em; }
+      .tool .tool-sub { margin: 0 0 18px; color: var(--ink-2); font-size: 0.95rem; max-width: 60ch; }
+      .presets { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+      .btn {
+        appearance: none; border: none; cursor: pointer;
+        font-family: inherit; font-weight: 700; font-size: 0.95rem;
+        min-height: 44px; padding: 10px 18px; border-radius: 999px;
+        background: var(--surface-2); color: var(--ink);
+        transition: transform 160ms var(--ease-out), background-color 160ms ease;
+      }
+      .btn:active { transform: scale(0.97); }
+      .btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+      .btn-bad[aria-pressed="true"] { background: var(--bad); color: #fff; }
+      .btn-good[aria-pressed="true"] { background: var(--good); color: #fff; }
+      @media (prefers-color-scheme: dark) {
+        .btn-bad[aria-pressed="true"], .btn-good[aria-pressed="true"] { color: #10130f; }
+      }
+      .fader-row { margin-bottom: 18px; }
+      .fader-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+      .fader-label .name { font-weight: 700; display: flex; align-items: center; gap: 9px; }
+      .fader-label .val { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 1.05rem; }
+      .swatch { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+      .sw-dialog { background: var(--story); }
+      .sw-musik { background: var(--audio); }
+      .meter { height: 14px; border-radius: 7px; background: var(--surface-2); overflow: hidden; margin: 8px 0 4px; }
+      .meter-fill { height: 100%; width: 100%; border-radius: 7px; transform: scaleX(0); transform-origin: left center; transition: transform 250ms var(--ease-out); }
+      .fill-dialog { background: var(--story); }
+      .fill-musik { background: var(--audio); }
+      .scale { display: flex; justify-content: space-between; font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--ink-2); margin-bottom: 10px; }
+      input[type="range"] {
+        -webkit-appearance: none; appearance: none;
+        width: 100%; height: 44px; background: transparent; cursor: pointer; margin: 0;
+      }
+      input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--surface-2); }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 30px; height: 30px; border-radius: 50%; margin-top: -11px;
+        background: var(--surface); border: 3px solid var(--ink);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      }
+      input[type="range"]::-moz-range-track { height: 8px; border-radius: 4px; background: var(--surface-2); }
+      input[type="range"]::-moz-range-thumb {
+        width: 24px; height: 24px; border-radius: 50%;
+        background: var(--surface); border: 3px solid var(--ink);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      }
+      input[type="range"].rng-dialog::-webkit-slider-thumb { border-color: var(--story); }
+      input[type="range"].rng-dialog::-moz-range-thumb { border-color: var(--story); }
+      input[type="range"].rng-musik::-webkit-slider-thumb { border-color: var(--audio); }
+      input[type="range"].rng-musik::-moz-range-thumb { border-color: var(--audio); }
+      .verdict {
+        border-radius: 14px; padding: 14px 18px; font-weight: 600; margin-top: 6px;
+        display: flex; gap: 12px; align-items: flex-start; line-height: 1.5;
+        transition: background-color 200ms ease, color 200ms ease;
+      }
+      .verdict .v-ic { flex: none; width: 24px; height: 24px; margin-top: 1px; }
+      .verdict-good { background: var(--good-soft); color: var(--good); }
+      .verdict-bad { background: var(--bad-soft); color: var(--bad); }
+      .verdict-warn { background: var(--warn-soft); color: var(--warn); }
+      @media (prefers-color-scheme: dark) {
+        .verdict-good { color: var(--good); } .verdict-bad { color: var(--bad); } .verdict-warn { color: var(--warn); }
+      }
+      .eq-box { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 20px; }
+      .eq-box h5 { margin: 0 0 4px; font-size: 1rem; font-weight: 800; }
+      .eq-box p { margin: 0 0 14px; color: var(--ink-2); font-size: 0.95rem; max-width: 60ch; }
+      .eq-svg { width: 100%; height: auto; display: block; }
+      .eq-svg text { font-family: "IBM Plex Mono", monospace; font-size: 11px; fill: var(--ink-2); }
+      .eq-band { fill: var(--audio); opacity: 0.13; }
+      .eq-grid { stroke: var(--line); stroke-width: 1; }
+      .eq-zero { stroke: var(--ink-2); stroke-width: 1.4; }
+      .eq-curve { fill: none; stroke: var(--audio); stroke-width: 3.5; stroke-linecap: round; transition: d 300ms var(--ease-in-out); }
+      .eq-note { font-size: 0.9rem; color: var(--ink-2); margin-top: 10px; min-height: 1.5em; }
+
+      /* ---------- Storyboard ---------- */
+      .board {
+        background: #1d1d1f; border-radius: 22px; padding: 22px 18px 18px; margin: 20px 0 8px;
+        box-shadow: var(--shadow);
+      }
+      @media (prefers-color-scheme: dark) { .board { background: #000000; border: 1px solid var(--line); } }
+      .board-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 0 4px 16px; }
+      .board-top .bt-title { color: #f5f5f7; font-weight: 800; font-size: 1.02rem; }
+      .board-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+      .bbtn {
+        appearance: none; border: 2px solid #48484a; cursor: pointer;
+        font-family: inherit; font-weight: 700; font-size: 0.9rem;
+        min-height: 44px; padding: 9px 16px; border-radius: 999px;
+        background: transparent; color: #f5f5f7;
+        transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease;
+      }
+      .bbtn:active { transform: scale(0.97); }
+      .bbtn[aria-pressed="true"] { background: #f5f5f7; color: #1d1d1f; border-color: #f5f5f7; }
+      .frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+      .frame {
+        background: var(--frame-bg); border-radius: 12px; overflow: hidden;
+        display: flex; flex-direction: column;
+        transition: transform 200ms var(--ease-out);
+      }
+      .frame .scene { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+      .frame .cap { padding: 10px 12px 12px; color: #1d1d1f; }
+      .frame .cap .loc {
+        display: inline-block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 3px 8px; border-radius: 6px; margin-bottom: 6px; color: #fff;
+      }
+      .loc-kelas { background: #1565c0; }
+      .loc-kantin { background: #d9480f; }
+      .frame .cap p { margin: 0; font-size: 0.86rem; line-height: 1.45; font-weight: 500; }
+      .frame .step {
+        position: absolute; top: 8px; left: 8px;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: #1d1d1f; color: #fff;
+        font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 0.85rem;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .frame-wrap { position: relative; }
+      .board-note {
+        margin: 16px 4px 2px; padding: 13px 16px; border-radius: 12px;
+        font-size: 0.95rem; font-weight: 600; line-height: 1.55;
+        transition: background-color 200ms ease, color 200ms ease;
+      }
+      .note-good { background: #14301b; color: #8ce99a; }
+      .note-bad { background: #3a1717; color: #ffa8a8; }
+
+      /* ---------- Closing ---------- */
+      .closing { margin-top: 72px; border-top: 1px solid var(--line); padding-top: 34px; }
+      .closing h2 { font-size: clamp(1.5rem, 4.2vw, 2.1rem); letter-spacing: -0.025em; font-weight: 800; margin: 0 0 14px; text-wrap: balance; }
+      .closing p { max-width: 68ch; margin: 0 0 14px; }
+      .recap { display: grid; gap: 0; margin-top: 22px; border-top: 1px solid var(--line); }
+      .recap-row { display: grid; grid-template-columns: 130px 1fr; gap: 6px 20px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+      .recap-row .r-label { font-weight: 800; font-size: 0.95rem; }
+      .recap-row .r-label.a { color: var(--audio); }
+      .recap-row .r-label.s { color: var(--story); }
+      @media (prefers-color-scheme: dark) {
+        .recap-row .r-label.a { color: var(--audio); }
+        .recap-row .r-label.s { color: var(--story); }
+      }
+      .recap-row p { margin: 0; color: var(--ink-2); }
+      .recap-row p strong { color: var(--ink); }
+      footer { margin-top: 56px; color: var(--ink-2); font-size: 0.9rem; }
+      footer a { color: var(--story); font-weight: 600; text-underline-offset: 3px; }
+      @media (max-width: 560px) {
+        .wrap { padding: 0 16px 56px; }
+        .tool { padding: 20px 16px; }
+        .case-head { flex-direction: column; gap: 10px; }
+        .recap-row { grid-template-columns: 1fr; }
+        .frames { grid-template-columns: repeat(2, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="wrap">
+
+      <header class="intro">
+        <h1>Dialog yang tenggelam oleh musik, <span class="hl-story">alur yang kehilangan arah</span></h1>
+        <p class="lede">Dua studi kasus dari produksi film pendek di sekolah. Yang pertama soal suara: musik latar yang terlalu keras sampai dialog tidak terdengar. Yang kedua soal cerita: adegan yang melompat-lompat tanpa kontinuitas sampai penonton bingung. Keduanya punya perbaikan yang konkret — dan bisa dicoba langsung di halaman ini.</p>
+        <nav class="jump" aria-label="Lompat ke studi kasus">
+          <a href="#kasus-9"><span class="dot dot-audio"></span>Studi Kasus 9 · Musik Latar Menutupi Dialog</a>
+          <a href="#kasus-14"><span class="dot dot-story"></span>Studi Kasus 14 · Alur Tidak Jelas</a>
+        </nav>
+        <figure class="hero-media">
+          <img class="plx" data-plx="0.055" src="assets/mixer.jpg" alt="Konsol audio mixing di studio rekaman dengan deretan fader, kenop, dan tombol bercahaya" fetchpriority="high" />
+          <figcaption class="media-cap">Ruang mixing — tempat dialog dan musik berebut terdengar</figcaption>
+        </figure>
+      </header>
+
+      <!-- ================= STUDI KASUS 9 ================= -->
+      <section class="case" id="kasus-9" aria-labelledby="h-kasus-9">
+        <div class="case-head">
+          <span class="case-badge badge-audio">SK 9</span>
+          <h2 id="h-kasus-9">Musik Latar Menutupi Dialog</h2>
+        </div>
+        <p class="case-sub">Dalam sebuah adegan, dialog tokoh nyaris tidak terdengar karena tertutup musik latar. Masalahnya bukan pada musiknya — melainkan pada keseimbangan suaranya.</p>
+
+        <div class="qa qa-audio">
+          <h3><span class="qnum">1</span>Apa kesalahan yang dilakukan editor?</h3>
+          <p>Editor menambahkan musik latar dengan <strong class="k">volume yang terlalu tinggi</strong>. Akibatnya musik bersaing dengan dialog di adegan yang sama, dan suara percakapan tokoh — elemen terpenting dalam adegan — justru tertutup.</p>
+        </div>
+
+        <div class="qa qa-audio">
+          <h3><span class="qnum">2</span>Bagaimana mengatur keseimbangan suara?</h3>
+          <p>Prinsipnya satu: <strong class="k">dialog selalu diutamakan</strong>. Musik latar diatur jauh lebih kecil daripada dialog — patokan umumnya dialog berada di sekitar <span class="db">−12 s.d. −6 dB</span>, sedangkan musik latar di sekitar <span class="db">−24 s.d. −18 dB</span>. Angka ini fleksibel, menyesuaikan kebutuhan tiap proyek.</p>
+          <p>Selain volume, gunakan <strong class="k">EQ</strong>: kurangi frekuensi musik pada rentang suara manusia, sekitar <span class="db">1–4 kHz</span>, supaya dialog punya ruang dan tidak bertabrakan dengan musik. Coba rasakan bedanya pada mixer sederhana di bawah ini.</p>
+
+          <div class="tool" aria-label="Simulasi mixer dialog dan musik">
+            <h4>Ruang Mixing — coba sendiri</h4>
+            <p class="tool-sub">Geser fader dialog dan musik, lalu perhatikan meter dan penilaiannya. Mulai dari preset untuk melihat masalah aslinya.</p>
+            <div class="presets">
+              <button type="button" class="btn btn-bad" id="preset-bad" aria-pressed="false">Mix bermasalah</button>
+              <button type="button" class="btn btn-good" id="preset-good" aria-pressed="false">Mix seimbang</button>
+            </div>
+
+            <div class="fader-row">
+              <div class="fader-label">
+                <span class="name"><span class="swatch sw-dialog"></span>Dialog</span>
+                <span class="val" id="val-dialog">−9 dB</span>
+              </div>
+              <div class="meter"><div class="meter-fill fill-dialog" id="meter-dialog"></div></div>
+              <div class="scale"><span>−36</span><span>−24</span><span>−12</span><span>0 dB</span></div>
+              <input type="range" class="rng-dialog" id="rng-dialog" min="-36" max="0" step="1" value="-9" aria-label="Volume dialog dalam desibel" />
+            </div>
+
+            <div class="fader-row">
+              <div class="fader-label">
+                <span class="name"><span class="swatch sw-musik"></span>Musik latar</span>
+                <span class="val" id="val-musik">−8 dB</span>
+              </div>
+              <div class="meter"><div class="meter-fill fill-musik" id="meter-musik"></div></div>
+              <div class="scale"><span>−36</span><span>−24</span><span>−12</span><span>0 dB</span></div>
+              <input type="range" class="rng-musik" id="rng-musik" min="-36" max="0" step="1" value="-8" aria-label="Volume musik latar dalam desibel" />
+            </div>
+
+            <div class="verdict verdict-bad" id="verdict" role="status" aria-live="polite"></div>
+
+            <div class="eq-box">
+              <h5>EQ: beri ruang untuk suara manusia</h5>
+              <p>Suara manusia paling jelas terdengar di rentang 1–4 kHz. Jika musik dipangkas sedikit di rentang itu, dialog terdengar maju tanpa harus menaikkan volumenya.</p>
+              <svg class="eq-svg" viewBox="0 0 560 190" role="img" aria-label="Grafik EQ musik latar dengan penurunan pada rentang 1 sampai 4 kilohertz">
+                <rect class="eq-band" x="262" y="14" width="130" height="140" rx="6"></rect>
+                <line class="eq-grid" x1="40" y1="49" x2="540" y2="49"></line>
+                <line class="eq-grid" x1="40" y1="119" x2="540" y2="119"></line>
+                <line class="eq-zero" x1="40" y1="84" x2="540" y2="84"></line>
+                <path class="eq-curve" id="eq-curve" d="M40,84 L200,84 L262,84 L300,84 L352,84 L392,84 L470,84 L540,84"></path>
+                <text x="40" y="172">100 Hz</text>
+                <text x="252" y="172">1 kHz</text>
+                <text x="368" y="172">4 kHz</text>
+                <text x="492" y="172">10 kHz</text>
+                <text x="272" y="30">suara manusia</text>
+                <text x="10" y="88">0</text>
+                <text x="10" y="123">−6 dB</text>
+              </svg>
+              <div class="presets" style="margin:14px 0 0;">
+                <button type="button" class="btn" id="eq-toggle" aria-pressed="false">Aktifkan potongan EQ 1–4 kHz</button>
+              </div>
+              <p class="eq-note" id="eq-note">EQ datar: musik mengisi semua frekuensi, termasuk tempat dialog seharusnya terdengar.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa qa-audio">
+          <h3><span class="qnum">3</span>Apa fungsi audio mixing?</h3>
+          <p><strong class="k">Audio mixing</strong> adalah proses menggabungkan dan menyeimbangkan semua elemen suara menjadi satu kesatuan yang enak didengar. Fungsinya:</p>
+          <ul class="fn">
+            <li><span class="tick"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#d9480f" opacity="0.16"></circle><path d="M7 11.4 L10 14.2 L15.4 8" fill="none" stroke="#d9480f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>Menyeimbangkan volume tiap elemen suara.</span></li>
+            <li><span class="tick"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#d9480f" opacity="0.16"></circle><path d="M7 11.4 L10 14.2 L15.4 8" fill="none" stroke="#d9480f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>Membuat dialog tetap jernih dan mudah dipahami.</span></li>
+            <li><span class="tick"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#d9480f" opacity="0.16"></circle><path d="M7 11.4 L10 14.2 L15.4 8" fill="none" stroke="#d9480f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>Menciptakan kedalaman dan suasana lewat pengaturan EQ, panning, reverb, dan dinamika.</span></li>
+            <li><span class="tick"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#d9480f" opacity="0.16"></circle><path d="M7 11.4 L10 14.2 L15.4 8" fill="none" stroke="#d9480f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>Menjaga konsistensi kualitas suara dari awal sampai akhir film.</span></li>
+            <li><span class="tick"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#d9480f" opacity="0.16"></circle><path d="M7 11.4 L10 14.2 L15.4 8" fill="none" stroke="#d9480f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>Mendukung emosi dan narasi cerita.</span></li>
+            <li><span class="tick"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#d9480f" opacity="0.16"></circle><path d="M7 11.4 L10 14.2 L15.4 8" fill="none" stroke="#d9480f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>Memastikan hasil akhir sesuai standar pemutaran — tidak clipping, level loudness aman.</span></li>
+          </ul>
+        </div>
+
+        <div class="qa qa-audio">
+          <h3><span class="qnum">4</span>Mengapa musik latar tidak boleh mendominasi dialog?</h3>
+          <p>Karena dialog adalah pembawa cerita. Musik latar bertugas mendukung suasana, bukan mengambil alih adegan.</p>
+          <div class="callout callout-audio">
+            <p>Supaya alur dialog dalam adegan tetap terdengar jelas — tidak ada satu pun percakapan yang samar hanya karena musik latar yang terlalu besar.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= STUDI KASUS 14 ================= -->
+      <section class="case" id="kasus-14" aria-labelledby="h-kasus-14">
+        <div class="case-head">
+          <span class="case-badge badge-story">SK 14</span>
+          <h2 id="h-kasus-14">Adegan Film Tidak Memiliki Alur yang Jelas</h2>
+        </div>
+        <p class="case-sub">Sebuah film pendek tentang dompet yang hilang terasa membingungkan: adegannya melompat dari ruang kelas ke kantin, lalu kembali lagi ke ruang kelas, tanpa penjelasan apa pun.</p>
+        <figure class="case-photo">
+          <img class="plx" data-plx="0.04" src="assets/clapperboard.jpg" alt="Clapperboard di atas meja bersama kamera film, headphone, dan piringan hitam" loading="lazy" />
+          <figcaption class="media-cap">Alur cerita dikunci di praproduksi — jauh sebelum kamera menyala</figcaption>
+        </figure>
+
+        <div class="qa qa-story">
+          <h3><span class="qnum">1</span>Apa masalah utama dalam film tersebut?</h3>
+          <p>Masalah utamanya adalah <strong class="k">alur cerita yang tidak runtut</strong> dan <strong class="k">kurangnya kontinuitas antaradegan</strong>. Perpindahan lokasi dari ruang kelas ke kantin, kemudian kembali ke ruang kelas, tidak disertai penjelasan, sehingga penonton kesulitan memahami urutan peristiwa yang sebenarnya terjadi.</p>
+        </div>
+
+        <div class="qa qa-story">
+          <h3><span class="qnum">2</span>Bagaimana storyboard dapat membantu?</h3>
+          <p>Storyboard menggambarkan setiap adegan secara berurutan <em>sebelum</em> proses pengambilan gambar dimulai. Dengan storyboard, kelompok dapat merencanakan lokasi, waktu, dan perpindahan adegan sejak awal — sehingga cerita tersusun jelas, terstruktur, dan mudah dipahami penonton. Kesalahan urutan ketahuan di atas kertas, bukan setelah film jadi.</p>
+        </div>
+
+        <div class="qa qa-story">
+          <h3><span class="qnum">3</span>Bagaimana urutan adegan yang seharusnya?</h3>
+          <p>Cerita dompet hilang ini sebenarnya sederhana — asalkan diceritakan berurutan, satu langkah mengikuti langkah sebelumnya. Bandingkan dua versi storyboard di bawah ini: nomor pada tiap frame adalah urutan kejadian yang benar.</p>
+
+          <div class="board" aria-label="Storyboard urutan adegan dompet hilang">
+            <div class="board-top">
+              <span class="bt-title">Storyboard — Dompet yang Hilang</span>
+              <div class="board-btns">
+                <button type="button" class="bbtn" id="btn-kacau" aria-pressed="false">Versi kacau</button>
+                <button type="button" class="bbtn" id="btn-runtut" aria-pressed="true">Versi runtut</button>
+              </div>
+            </div>
+            <div class="frames" id="frames"></div>
+            <p class="board-note note-good" id="board-note" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="qa qa-story">
+          <h3><span class="qnum">4</span>Mengapa kontinuitas cerita penting?</h3>
+          <p>Kontinuitas membuat alur film terasa logis, runtut, dan mudah dipahami. Ia menjaga hubungan antaradegan tetap nyambung, sehingga penonton tidak bingung dan bisa mengikuti cerita dari awal hingga akhir dengan nyaman.</p>
+          <div class="callout callout-story">
+            <p>Setiap adegan menjawab pertanyaan adegan sebelumnya: dompet hilang di kelas → dicari di kelas → dicari di kantin → ditanyakan → kembali dicari → ketemu. Putus satu mata rantai, penonton kehilangan ceritanya.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PENUTUP ================= -->
+      <div class="closing">
+        <h2>Benang merahnya: penonton harus selalu bisa mengikuti</h2>
+        <p>Kedua kasus ini terlihat berbeda — satu soal telinga, satu soal mata — tetapi akarnya sama. Film gagal bukan karena idenya jelek, melainkan karena penonton kehilangan pegangan: dialog yang tidak terdengar, atau urutan peristiwa yang tidak masuk akal.</p>
+        <p>Perbaikannya pun sama-sama terjadi <em>sebelum</em> penonton menonton: dialog diutamakan saat mixing, dan urutan adegan dikunci sejak storyboard. Sisanya adalah ketelitian.</p>
+        <div class="recap">
+          <div class="recap-row">
+            <span class="r-label a">Suara (SK 9)</span>
+            <p><strong>Dialog adalah raja.</strong> Jaga dialog di −12 s.d. −6 dB, tekan musik ke −24 s.d. −18 dB, dan potong EQ musik di 1–4 kHz agar suara manusia punya ruang.</p>
+          </div>
+          <div class="recap-row">
+            <span class="r-label s">Cerita (SK 14)</span>
+            <p><strong>Urutan adalah logika.</strong> Rencanakan tiap adegan dan perpindahannya di storyboard, jaga kontinuitas, dan penonton akan mengikuti cerita tanpa perlu menebak.</p>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>Materi pembelajaran produksi film — Studi Kasus 9 (Audio Mixing) dan Studi Kasus 14 (Kontinuitas &amp; Storyboard).</p>
+        <p>Foto dari sumber terbuka: konsol mixing (CC0 via Openverse), ruang kelas, kantin, koridor, dan dompet (Flickr, lisensi Creative Commons), clapperboard (Pajno Films), tas ransel (Materinstvo), dan siswa lega (Yabbu). Daftar tautan sumber lengkap tercantum dalam <a href="assets/README.md">berkas README.md</a> yang disertakan dalam paket situs ini.</p>
+      </footer>
+    </div>
+
+    <script>
+      /* ================= Mixer ================= */
+      var rngDialog = document.getElementById('rng-dialog');
+      var rngMusik = document.getElementById('rng-musik');
+      var valDialog = document.getElementById('val-dialog');
+      var valMusik = document.getElementById('val-musik');
+      var meterDialog = document.getElementById('meter-dialog');
+      var meterMusik = document.getElementById('meter-musik');
+      var verdict = document.getElementById('verdict');
+      var presetBad = document.getElementById('preset-bad');
+      var presetGood = document.getElementById('preset-good');
+
+      var ICON_GOOD = '<svg class="v-ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity="0.18"></circle><path d="M7.5 12.4 L10.6 15.4 L16.8 8.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+      var ICON_BAD = '<svg class="v-ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity="0.18"></circle><path d="M8.5 8.5 L15.5 15.5 M15.5 8.5 L8.5 15.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path></svg>';
+      var ICON_WARN = '<svg class="v-ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity="0.18"></circle><path d="M12 7.5 L12 13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><circle cx="12" cy="16.8" r="1.5" fill="currentColor"></circle></svg>';
+
+      function fmtDb(v) { return (v > 0 ? '+' : '') + String(v).replace('-', '−') + ' dB'; }
+      function frac(v) { return ((v + 36) / 36).toFixed(3); }
+
+      function renderMixer(fromPreset) {
+        var d = parseInt(rngDialog.value, 10);
+        var m = parseInt(rngMusik.value, 10);
+        valDialog.textContent = fmtDb(d);
+        valMusik.textContent = fmtDb(m);
+        meterDialog.style.transform = 'scaleX(' + frac(d) + ')';
+        meterMusik.style.transform = 'scaleX(' + frac(m) + ')';
+        var diff = d - m;
+        var cls, icon, msg;
+        if (m >= d) {
+          cls = 'verdict verdict-bad'; icon = ICON_BAD;
+          msg = '<span><strong>Musik menutupi dialog.</strong> Musik sama kerasnya atau lebih keras dari dialog (' + fmtDb(m) + ' vs ' + fmtDb(d) + ') — inilah kesalahan pada studi kasus: percakapan tokoh jadi samar dan penonton kehilangan cerita.</span>';
+        } else if (diff < 6) {
+          cls = 'verdict verdict-warn'; icon = ICON_WARN;
+          msg = '<span><strong>Musik masih terlalu dekat dengan dialog</strong> (selisih hanya ' + diff + ' dB). Turunkan musik lagi sampai dialog benar-benar berdiri di depan.</span>';
+        } else if (diff <= 20) {
+          cls = 'verdict verdict-good'; icon = ICON_GOOD;
+          msg = '<span><strong>Seimbang.</strong> Musik berada ' + diff + ' dB di bawah dialog — dialog jernih dan mudah dipahami, musik tetap terasa sebagai pendukung suasana. Inilah kisaran yang dianjurkan.</span>';
+        } else {
+          cls = 'verdict verdict-warn'; icon = ICON_WARN;
+          msg = '<span><strong>Musik terlalu pelan</strong> (selisih ' + diff + ' dB). Dialog memang jelas, tetapi suasana adegan jadi hampa. Naikkan musik sedikit, tetap di bawah dialog.</span>';
+        }
+        verdict.className = cls;
+        verdict.innerHTML = icon + msg;
+        if (!fromPreset) {
+          presetBad.setAttribute('aria-pressed', 'false');
+          presetGood.setAttribute('aria-pressed', 'false');
+        }
+      }
+
+      function setMix(d, m, which) {
+        rngDialog.value = d;
+        rngMusik.value = m;
+        presetBad.setAttribute('aria-pressed', which === 'bad' ? 'true' : 'false');
+        presetGood.setAttribute('aria-pressed', which === 'good' ? 'true' : 'false');
+        renderMixer(true);
+      }
+      presetBad.addEventListener('click', function () { setMix(-12, -6, 'bad'); });
+      presetGood.addEventListener('click', function () { setMix(-9, -21, 'good'); });
+      rngDialog.addEventListener('input', function () { renderMixer(false); });
+      rngMusik.addEventListener('input', function () { renderMixer(false); });
+      renderMixer(false);
+
+      /* ================= EQ toggle ================= */
+      var eqToggle = document.getElementById('eq-toggle');
+      var eqCurve = document.getElementById('eq-curve');
+      var eqNote = document.getElementById('eq-note');
+      var EQ_FLAT = 'M40,84 L200,84 L262,84 L300,84 L352,84 L392,84 L470,84 L540,84';
+      var EQ_DIP = 'M40,84 L200,84 L262,84 L292,116 L322,124 L362,116 L392,84 L470,84 L540,84';
+      eqToggle.addEventListener('click', function () {
+        var on = eqToggle.getAttribute('aria-pressed') === 'true';
+        eqToggle.setAttribute('aria-pressed', on ? 'false' : 'true');
+        eqToggle.textContent = on ? 'Aktifkan potongan EQ 1–4 kHz' : 'Matikan potongan EQ';
+        eqCurve.setAttribute('d', on ? EQ_FLAT : EQ_DIP);
+        eqNote.textContent = on
+          ? 'EQ datar: musik mengisi semua frekuensi, termasuk tempat dialog seharusnya terdengar.'
+          : 'EQ dipotong di 1–4 kHz: musik memberi ruang, dan dialog terdengar jelas tanpa perlu lebih keras.';
+      });
+
+      /* ================= Storyboard ================= */
+      var SCENE_IMG = {
+        sadar: { src: 'assets/frame-kelas.jpg', alt: 'Suasana di dalam ruang kelas' },
+        tas: { src: 'assets/frame-tas.jpg', alt: 'Tas ransel biru di atas meja kelas' },
+        kantin: { src: 'assets/frame-kantin.jpg', alt: 'Kantin sekolah dengan deretan meja panjang' },
+        tanya: { src: 'assets/frame-tanya.jpg', alt: 'Dua orang berbincang di ambang pintu' },
+        kembali: { src: 'assets/frame-kembali.jpg', alt: 'Koridor sekolah dengan deretan loker' },
+        ketemu: { src: 'assets/frame-dompet.jpg', alt: 'Dompet kulit cokelat yang ditemukan' },
+        lega: { src: 'assets/frame-lega.jpg', alt: 'Siswa tersenyum lega sambil mengangkat kedua tangan di mejanya' }
+      };
+
+      var STEPS = [
+        { n: 1, loc: 'Ruang Kelas', locCls: 'loc-kelas', scene: 'sadar', cap: 'Siswa berada di ruang kelas dan menyadari dompetnya hilang.' },
+        { n: 2, loc: 'Ruang Kelas', locCls: 'loc-kelas', scene: 'tas', cap: 'Siswa mencari dompet di dalam tas dan di sekitar meja.' },
+        { n: 3, loc: 'Kantin', locCls: 'loc-kantin', scene: 'kantin', cap: 'Siswa pergi ke kantin untuk mencari dompet yang mungkin tertinggal.' },
+        { n: 4, loc: 'Kantin', locCls: 'loc-kantin', scene: 'tanya', cap: 'Siswa bertanya kepada teman atau penjaga kantin.' },
+        { n: 5, loc: 'Ruang Kelas', locCls: 'loc-kelas', scene: 'kembali', cap: 'Siswa kembali ke ruang kelas untuk melanjutkan pencarian.' },
+        { n: 6, loc: 'Ruang Kelas', locCls: 'loc-kelas', scene: 'ketemu', cap: 'Siswa menemukan dompet di bawah meja.' },
+        { n: 7, loc: 'Ruang Kelas', locCls: 'loc-kelas', scene: 'lega', cap: 'Siswa merasa lega karena dompetnya telah ditemukan.' }
+      ];
+      var ORDER_RUNTUT = [0, 1, 2, 3, 4, 5, 6];
+      var ORDER_KACAU = [0, 2, 4, 1, 6, 3, 5];
+
+      var framesEl = document.getElementById('frames');
+      var boardNote = document.getElementById('board-note');
+      var btnKacau = document.getElementById('btn-kacau');
+      var btnRuntut = document.getElementById('btn-runtut');
+
+      var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function renderBoard(order, mode, animateFlip) {
+        /* FLIP: catat posisi frame lama agar frame meluncur ke posisi barunya (konsistensi spasial) */
+        var oldPos = null;
+        if (animateFlip && !REDUCED) {
+          oldPos = {};
+          var olds = framesEl.querySelectorAll('.frame');
+          for (var k = 0; k < olds.length; k++) {
+            var r0 = olds[k].getBoundingClientRect();
+            oldPos[olds[k].getAttribute('data-step')] = { x: r0.left, y: r0.top };
+          }
+        }
+        var html = '';
+        for (var i = 0; i < order.length; i++) {
+          var s = STEPS[order[i]];
+          var im = SCENE_IMG[s.scene];
+          html += '<div class="frame" data-step="' + s.n + '"><div class="frame-wrap">' +
+            '<img class="scene" src="' + im.src + '" alt="' + im.alt + '" loading="lazy" />' +
+            '<span class="step">' + s.n + '</span></div>' +
+            '<div class="cap"><span class="loc ' + s.locCls + '">' + s.loc + '</span><p>' + s.cap + '</p></div></div>';
+        }
+        framesEl.innerHTML = html;
+        if (oldPos) {
+          var news = framesEl.querySelectorAll('.frame');
+          var moved = [];
+          for (var j = 0; j < news.length; j++) {
+            var o = oldPos[news[j].getAttribute('data-step')];
+            if (!o) continue;
+            var r1 = news[j].getBoundingClientRect();
+            var dx = o.x - r1.left, dy = o.y - r1.top;
+            if (dx || dy) {
+              news[j].style.transition = 'none';
+              news[j].style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+              moved.push(news[j]);
+            }
+          }
+          if (moved.length) {
+            void framesEl.offsetWidth;
+            for (var m = 0; m < moved.length; m++) {
+              moved[m].style.transition = 'transform 320ms cubic-bezier(0.77, 0, 0.175, 1)';
+              moved[m].style.transform = '';
+            }
+            setTimeout(function () {
+              for (var q = 0; q < moved.length; q++) { moved[q].style.transition = ''; }
+            }, 360);
+          }
+        }
+        if (mode === 'runtut') {
+          boardNote.className = 'board-note note-good';
+          boardNote.textContent = 'Versi runtut: setiap perpindahan lokasi punya sebab. Kelas → kantin → kelas terasa wajar karena penonton melihat alasan di tiap langkahnya.';
+        } else {
+          boardNote.className = 'board-note note-bad';
+          boardNote.textContent = 'Versi kacau: perhatikan nomor framenya — adegan melompat dari kelas ke kantin, kembali ke kelas, lalu tiba-tiba lega sebelum dompet ditemukan. Tanpa sebab yang jelas, penonton bingung. Inilah masalah pada studi kasus.';
+        }
+        btnKacau.setAttribute('aria-pressed', mode === 'kacau' ? 'true' : 'false');
+        btnRuntut.setAttribute('aria-pressed', mode === 'runtut' ? 'true' : 'false');
+      }
+      btnKacau.addEventListener('click', function () { renderBoard(ORDER_KACAU, 'kacau', true); });
+      btnRuntut.addEventListener('click', function () { renderBoard(ORDER_RUNTUT, 'runtut', true); });
+      renderBoard(ORDER_RUNTUT, 'runtut', false);
+
+      /* ================= Gerak halaman (animate / Emil Kowalski) =================
+         - Parallax: dekoratif, hanya transform, mati saat prefers-reduced-motion.
+         - Progres baca: indikasi status, scaleX (GPU).
+         - Reveal: sekali tampil per elemen, 320ms ease-out, stagger 60ms. */
+      (function () {
+        if (REDUCED) return;
+        var fill = document.getElementById('progress-fill');
+        var plx = document.querySelectorAll('[data-plx]');
+        var ticking = false;
+        function onScrollFrame() {
+          ticking = false;
+          var doc = document.documentElement;
+          var max = doc.scrollHeight - doc.clientHeight;
+          if (fill && max > 0) fill.style.transform = 'scaleX(' + (doc.scrollTop / max).toFixed(4) + ')';
+          var vh = window.innerHeight;
+          for (var i = 0; i < plx.length; i++) {
+            var host = plx[i].parentElement;
+            var r = host.getBoundingClientRect();
+            if (r.bottom < -80 || r.top > vh + 80) continue;
+            var speed = parseFloat(plx[i].getAttribute('data-plx')) || 0.05;
+            var off = -(r.top + r.height / 2 - vh / 2) * speed;
+            plx[i].style.transform = 'translateY(' + off.toFixed(1) + 'px)';
+          }
+        }
+        function requestFrame() { if (!ticking) { ticking = true; requestAnimationFrame(onScrollFrame); } }
+        window.addEventListener('scroll', requestFrame, { passive: true });
+        window.addEventListener('resize', requestFrame);
+        onScrollFrame();
+
+        if ('IntersectionObserver' in window) {
+          document.documentElement.classList.add('anim');
+          var targets = document.querySelectorAll('.qa, .case-head, .case-sub, .hero-media, .case-photo, .closing h2, .closing p, .recap-row');
+          var io = new IntersectionObserver(function (entries) {
+            var batch = 0;
+            for (var e = 0; e < entries.length; e++) {
+              if (entries[e].isIntersecting) {
+                entries[e].target.style.setProperty('--d', Math.min(batch * 60, 180) + 'ms');
+                entries[e].target.classList.add('in');
+                io.unobserve(entries[e].target);
+                batch++;
+              }
+            }
+          }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+          for (var t = 0; t < targets.length; t++) { targets[t].classList.add('rv'); io.observe(targets[t]); }
+          /* Failsafe: apa pun yang terjadi pada observer, semua konten tampil dalam 1,2 detik. */
+          setTimeout(function () {
+            for (var u = 0; u < targets.length; u++) { targets[u].classList.add('in'); io.unobserve(targets[u]); }
+          }, 1200);
+        }
+      })();
+    </script>
+  </body>
+</html>
